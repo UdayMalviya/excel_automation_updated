@@ -1,0 +1,258 @@
+:root {
+  font-family: "Segoe UI", "Helvetica Neue", sans-serif;
+  color: #e8eef7;
+  background:
+    radial-gradient(circle at top left, rgba(74, 111, 165, 0.35), transparent 30%),
+    radial-gradient(circle at top right, rgba(37, 171, 134, 0.25), transparent 28%),
+    linear-gradient(135deg, #06131f 0%, #10263b 45%, #0a1a29 100%);
+  line-height: 1.5;
+  font-weight: 400;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  --panel-bg: rgba(10, 25, 40, 0.8);
+  --panel-border: rgba(163, 188, 214, 0.16);
+  --accent: #7ee0c1;
+  --accent-strong: #3fd3a4;
+  --warning: #f5bf67;
+  --danger: #f37878;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  min-height: 100vh;
+}
+
+button,
+input {
+  font: inherit;
+}
+
+#root {
+  min-height: 100vh;
+}
+
+.dashboard-shell {
+  width: min(1400px, calc(100% - 32px));
+  margin: 0 auto;
+  padding: 24px 0 32px;
+}
+
+.hero-card,
+.content-grid {
+  display: grid;
+  gap: 20px;
+}
+
+.hero-card {
+  grid-template-columns: 1.3fr 0.9fr;
+  align-items: start;
+  margin-bottom: 20px;
+}
+
+.content-grid {
+  grid-template-columns: 1.35fr 0.85fr;
+}
+
+.panel,
+.hero-card {
+  background: var(--panel-bg);
+  border: 1px solid var(--panel-border);
+  border-radius: 24px;
+  box-shadow: 0 18px 60px rgba(3, 10, 18, 0.28);
+  backdrop-filter: blur(14px);
+}
+
+.hero-card {
+  padding: 28px;
+}
+
+.panel {
+  padding: 20px;
+}
+
+.eyebrow {
+  margin: 0 0 8px;
+  color: var(--accent);
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+  font-size: 0.78rem;
+}
+
+h1,
+h2,
+h3,
+p {
+  margin-top: 0;
+}
+
+h1 {
+  font-size: clamp(2rem, 3vw, 3.5rem);
+  line-height: 1.05;
+  margin-bottom: 14px;
+}
+
+.hero-copy,
+.muted {
+  color: rgba(224, 233, 243, 0.72);
+}
+
+.panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.status-pill {
+  border-radius: 999px;
+  padding: 6px 12px;
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.status-idle {
+  background: rgba(125, 144, 166, 0.16);
+}
+
+.status-running {
+  background: rgba(245, 191, 103, 0.18);
+  color: #ffd89b;
+}
+
+.status-success {
+  background: rgba(63, 211, 164, 0.18);
+  color: #93f0d2;
+}
+
+.status-error {
+  background: rgba(243, 120, 120, 0.18);
+  color: #ffc7c7;
+}
+
+.field {
+  display: grid;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.field input {
+  width: 100%;
+  padding: 14px 16px;
+  border-radius: 14px;
+  border: 1px solid rgba(177, 201, 225, 0.18);
+  background: rgba(4, 13, 21, 0.6);
+  color: inherit;
+}
+
+.primary-button {
+  width: 100%;
+  border: 0;
+  border-radius: 16px;
+  padding: 14px 18px;
+  color: #03211a;
+  font-weight: 700;
+  background: linear-gradient(135deg, var(--accent) 0%, var(--accent-strong) 100%);
+  cursor: pointer;
+  transition: transform 180ms ease, filter 180ms ease;
+}
+
+.secondary-button {
+  margin-top: 12px;
+  color: #dbe8f4;
+  background: linear-gradient(135deg, #284760 0%, #1b354c 100%);
+}
+
+.primary-button:hover {
+  transform: translateY(-1px);
+  filter: brightness(1.05);
+}
+
+.primary-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+.result-card,
+.response-preview,
+.log-item {
+  border: 1px solid rgba(177, 201, 225, 0.12);
+  background: rgba(3, 12, 20, 0.52);
+  border-radius: 16px;
+}
+
+.result-card {
+  margin-top: 16px;
+  padding: 16px;
+}
+
+.viewer-frame {
+  width: 100%;
+  min-height: 620px;
+  border: 0;
+  border-radius: 18px;
+  background: #0a1118;
+}
+
+.response-preview {
+  margin: 0 0 14px;
+  padding: 14px;
+  overflow: auto;
+  max-height: 220px;
+}
+
+.log-list {
+  display: grid;
+  gap: 12px;
+  max-height: 440px;
+  overflow: auto;
+}
+
+.log-item {
+  padding: 14px;
+}
+
+.log-meta {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 8px;
+  color: rgba(224, 233, 243, 0.62);
+  font-size: 0.85rem;
+}
+
+@media (max-width: 1080px) {
+  .hero-card,
+  .content-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .viewer-frame {
+    min-height: 460px;
+  }
+}
+
+@media (max-width: 640px) {
+  .dashboard-shell {
+    width: min(100% - 20px, 1400px);
+    padding-top: 16px;
+  }
+
+  .hero-card,
+  .panel {
+    padding: 16px;
+    border-radius: 20px;
+  }
+
+  .viewer-frame {
+    min-height: 360px;
+  }
+}
