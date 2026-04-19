@@ -2,7 +2,7 @@ import { useState } from "react";
 import ControlPanel from "../components/ControlPanel";
 import VNCViewer from "../components/VNCViewer";
 import LogsPanel from "../components/LogsPanel";
-import { startTask, submitCaptcha } from "../services/api";
+import { getDownloadUrl, startTask, submitCaptcha } from "../services/api";
 
 const initialLogs = [
   {
@@ -13,9 +13,10 @@ const initialLogs = [
 ];
 
 function Dashboard() {
-  const [url, setUrl] = useState("https://example.com");
+  const [url, setUrl] = useState("https://mpapexbankutility.bank.in/");
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
+  const [excelFile, setExcelFile] = useState(null);
   const [captchaText, setCaptchaText] = useState("");
   const [sessionId, setSessionId] = useState("");
   const [status, setStatus] = useState("idle");
@@ -23,12 +24,32 @@ function Dashboard() {
   const [logs, setLogs] = useState(initialLogs);
 
   const handleStart = async () => {
+    if (!url.trim() || !username.trim() || !password.trim()) {
+      const message = "URL, username, and password are required before starting automation.";
+      setStatus("error");
+      setResult({
+        status: "error",
+        message,
+      });
+      setLogs((current) => [
+        {
+          timestamp: new Date().toISOString(),
+          stage: "validation",
+          message,
+        },
+        ...current,
+      ]);
+      return;
+    }
+
     setStatus("running");
     setLogs((current) => [
       {
         timestamp: new Date().toISOString(),
         stage: "ui",
-        message: `Opening automation session for ${url}`,
+        message: excelFile
+          ? `Opening automation session for ${url} using ${excelFile.name}`
+          : `Opening automation session for ${url}`,
       },
       ...current,
     ]);
@@ -38,6 +59,7 @@ function Dashboard() {
         url,
         username,
         password,
+        excel_file: excelFile,
       });
       setResult(response);
       setStatus(response.status);
@@ -146,11 +168,20 @@ function Dashboard() {
           setUsername={setUsername}
           password={password}
           setPassword={setPassword}
+          excelFile={excelFile}
+          setExcelFile={setExcelFile}
           captchaText={captchaText}
           setCaptchaText={setCaptchaText}
           sessionId={sessionId}
           status={status}
-          result={result}
+          result={
+            result
+              ? {
+                  ...result,
+                  download_url: getDownloadUrl(result.download_path),
+                }
+              : null
+          }
           onStart={handleStart}
           onSubmitCaptcha={handleSubmitCaptcha}
         />

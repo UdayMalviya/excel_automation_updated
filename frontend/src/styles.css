@@ -34,6 +34,10 @@ input {
   font: inherit;
 }
 
+small {
+  font: inherit;
+}
+
 #root {
   min-height: 100vh;
 }
@@ -153,6 +157,27 @@ h1 {
   color: inherit;
 }
 
+.field input[type="file"] {
+  padding: 12px 14px;
+}
+
+.field-hint {
+  color: rgba(224, 233, 243, 0.62);
+  font-size: 0.85rem;
+}
+
+.file-chip {
+  display: inline-flex;
+  width: fit-content;
+  align-items: center;
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: rgba(63, 211, 164, 0.14);
+  border: 1px solid rgba(126, 224, 193, 0.22);
+  color: #a3f1da;
+  font-size: 0.82rem;
+}
+
 .primary-button {
   width: 100%;
   border: 0;
@@ -169,6 +194,15 @@ h1 {
   margin-top: 12px;
   color: #dbe8f4;
   background: linear-gradient(135deg, #284760 0%, #1b354c 100%);
+}
+
+.download-button {
+  display: inline-flex;
+  width: auto;
+  margin-top: 12px;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
 }
 
 .primary-button:hover {
