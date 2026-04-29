@@ -9,6 +9,7 @@ class StartTaskRequest(BaseModel):
     password: str
     action: str = Field(default="login_only")
     sr: str | None = None
+    add_farmer: bool = False
     farmer_name: str | None = None
     guardian_name: str | None = None
     gender: str | None = None

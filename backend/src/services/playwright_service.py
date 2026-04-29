@@ -26,6 +26,28 @@ class PlaywrightService:
     _sessions: dict[str, dict] = {}
     _downloads: dict[str, dict[str, str]] = {}
     _excel_mapper = ExcelTaskMapper()
+    _ADD_FARMER_ACTIONS = {"add_farmer", "add_farmer_only"}
+    _VILLAGE_OPTIONS = {
+        "KADODIYA": "कड़ोदिया",
+        "HARUKHEDI": "हारूखेड़ी",
+        "BUKHARI": "बुखारी",
+        "BAGWADA": "बगवाड़ा",
+        "RATNAKHEDI": "रत्नाखेड़ी",
+        "SALANAKHEDI": "सालनाखेड़ी",
+        "REHWARI": "रेहवारी",
+        "MANASA": "मनासा",
+    }
+    _FARMER_TYPE_OPTIONS = {
+        "small": "1",
+        "marginal": "1",
+        "small/marginal": "1",
+        "small marginal": "1",
+        "other": "2",
+        "others": "2",
+    }
+    _CATEGORY_OPTIONS = {
+        "gen": "Gen",
+    }
 
     async def start(self, payload: StartTaskRequest) -> TaskResponse:
         started_at = datetime.now(timezone.utc)
@@ -283,22 +305,31 @@ class PlaywrightService:
 
         if action in {"", "login_only"}:
             return "login_only"
+        if action in PlaywrightService._ADD_FARMER_ACTIONS:
+            return "login_only"
         if action in {"fill_vitran_form", "vitran"}:
             return "fill_vitran_form"
         if action in {"fill_vasuli_form", "vasuli"}:
             return "fill_vasuli_form"
         raise ValueError(
-            f"Unknown action: {action}. Expected 'login_only', 'fill_vitran_form', or 'fill_vasuli_form'."
+            f"Unknown action: {action}. Expected 'login_only', 'add_farmer', 'fill_vitran_form', or 'fill_vasuli_form'."
         )
 
     async def _execute_payload_flow(
         self, page: Page, payload: StartTaskRequest, add_log
     ) -> None:
         flow = self._resolve_flow(payload)
-        if flow == "login_only":
+        add_farmer = self._should_add_farmer(payload)
+        if flow == "login_only" and not add_farmer:
             return
 
-        await self._open_farmer_details_page(page, add_log)
+        if add_farmer:
+            await self._open_farmer_details_page(page, add_log, add_farmer=True)
+            await self._add_new_farmer(page, payload, add_log)
+            if flow == "login_only":
+                return
+
+        await self._open_farmer_details_page(page, add_log, add_farmer=False)
         await self._trigger_search(page, add_log)
         await self._click_table_link(
             page,
@@ -313,10 +344,19 @@ class PlaywrightService:
         elif flow == "fill_vasuli_form":
             await self._fill_vasuli_form(page, payload, add_log)
 
-    async def _open_farmer_details_page(self, page: Page, add_log) -> None:
-        add_log("navigation", "Opening Farmer Details page")
+    async def _open_farmer_details_page(
+        self, page: Page, add_log, add_farmer: bool = False
+    ) -> None:
+        add_log(
+            "navigation",
+            "Opening Farmer Details page",
+            mode="add" if add_farmer else "view",
+        )
         await page.locator("span:has-text('Intrest Subvention')").click()
-        link = page.locator("a[href='FarmerDetailsView.aspx']")
+        if add_farmer:
+            link = page.locator("a[href='FarmerDetails.aspx']")
+        else:
+            link = page.locator("a[href='FarmerDetailsView.aspx']")
         await expect(link).to_be_visible(timeout=10000)
         await link.click()
         await page.wait_for_load_state("domcontentloaded")
@@ -395,7 +435,6 @@ class PlaywrightService:
         )
         season_option = page.locator(
             f"#ContentPlaceHolder1_rblseasonrec_{payload.season}"
-            
         )
         date_input = page.locator("#ContentPlaceHolder1_txtdaterec")
         amount_input = page.locator("#ContentPlaceHolder1_txtcr")
@@ -414,6 +453,76 @@ class PlaywrightService:
             season=payload.season,
             date=payload.date,
             amount=payload.amount,
+        )
+        await page.wait_for_load_state("networkidle")
+
+    async def _add_new_farmer(
+        self, page: Page, payload: StartTaskRequest, add_log
+    ) -> None:
+        self._require_fields(
+            payload,
+            [
+                "farmer_name",
+                "guardian_name",
+                "gender",
+                "village_name",
+                "category",
+                "savings_account_number",
+                "mobile_number",
+                "aadhaar_number",
+                "erp_admission_number",
+                "farmer_type",
+            ],
+        )
+
+        # farmer_data = {'मनासा': 1031, 'रेहवारी':1015, 'सालनाखेड़ी':1017, 'रत्नाखेड़ी': 1033, 'बगवाड़ा':1035, 'बुखारी':1037, 'हारूखेड़ी':1038, 'कड़ोदिया':1039}
+        data = {'KADODIYA': 'कड़ोदिया', 'HARUKHEDI': 'हारूखेड़ी','BUKHARI': 'बुखारी', 'BAGWADA': 'बगवाड़ा','RATNAKHEDI': 'रत्नाखेड़ी', 'SALANAKHEDI': 'सालनाखेड़ी', 'REHWARI': 'रेहवारी', 'MANASA': 'मनासा'}
+        await page.locator("#ContentPlaceHolder1_tbxFarmarName").fill(
+            self._required_value(payload, "farmer_name")
+        )
+        await page.locator("#ContentPlaceHolder1_tbxFFatherName").fill(
+            self._required_value(payload, "guardian_name")
+        )
+        await page.locator("#ContentPlaceHolder1_ddlgender").select_option(
+            self._required_value(payload, "gender")
+        )
+        await page.locator("#ContentPlaceHolder1_ddlvillagename").select_option(
+            self._resolve_village_option(payload.village_name)
+        )
+        await page.locator("#ContentPlaceHolder1_ddlfarmercat").select_option(
+            self._resolve_farmer_type_option(payload.farmer_type)
+        )
+        await page.locator("#ContentPlaceHolder1_ddlcatgory").select_option(
+            self._resolve_category_option(payload.category)
+        )
+
+        await page.locator("#ContentPlaceHolder1_tbxsavingaccountno").fill(
+            self._required_value(payload, "savings_account_number")
+        )
+        await page.locator("#ContentPlaceHolder1_tbxMobileNo").fill(
+            self._required_value(payload, "mobile_number")
+        )
+        await page.locator("#ContentPlaceHolder1_tbxAadharno").fill(
+            self._required_value(payload, "aadhaar_number")
+        )
+        await page.locator("#ContentPlaceHolder1_tbxAdmissionno").fill(
+            self._required_value(payload, "erp_admission_number")
+        )
+        await page.locator("#ContentPlaceHolder1_btnSubmit").click()
+
+        add_log(
+            "form",
+            "Kisan form filled",
+            farmer_name=payload.farmer_name,
+            guardian_name=payload.guardian_name,
+            gender=payload.gender,
+            village_name=payload.village_name,
+            farmer_type=payload.farmer_type,
+            category=payload.category,
+            savings_account_number=payload.savings_account_number,
+            mobile_number=payload.mobile_number,
+            aadhaar_number=payload.aadhaar_number,
+            erp_admission_number=payload.erp_admission_number,
         )
         await page.wait_for_load_state("networkidle")
 
@@ -528,6 +637,47 @@ class PlaywrightService:
             raise ValueError(
                 f"Missing required fields for action: {', '.join(missing)}"
             )
+
+    @classmethod
+    def _should_add_farmer(cls, payload: StartTaskRequest) -> bool:
+        action = (payload.action or "").strip().lower()
+        return payload.add_farmer or action in cls._ADD_FARMER_ACTIONS
+
+    @staticmethod
+    def _required_value(payload: StartTaskRequest, field: str) -> str:
+        value = getattr(payload, field)
+        if value in (None, ""):
+            raise ValueError(f"Missing required field for action: {field}")
+        return str(value).strip()
+
+    @classmethod
+    def _resolve_village_option(cls, value: str | None) -> str:
+        if value is None:
+            return ""
+        cleaned = value.strip()
+        return cls._VILLAGE_OPTIONS.get(cleaned.upper(), cleaned)
+
+    @classmethod
+    def _resolve_farmer_type_option(cls, value: str | None) -> str:
+        if value is None:
+            return ""
+
+        cleaned = value.strip()
+        normalized = cls._normalize_option_key(cleaned)
+        return cls._FARMER_TYPE_OPTIONS.get(normalized, cleaned)
+
+    @classmethod
+    def _resolve_category_option(cls, value: str | None) -> str:
+        if value is None:
+            return ""
+        cleaned = value.strip()
+        normalized = cls._normalize_option_key(cleaned)
+        return cls._CATEGORY_OPTIONS.get(normalized, cleaned.capitalize())
+
+    @staticmethod
+    def _normalize_option_key(value: str) -> str:
+        normalized = " ".join(value.lower().replace("_", " ").split())
+        return normalized.replace(" / ", "/").replace("/ ", "/").replace(" /", "/")
 
     async def _handle_post_login_popup(self, page: Page, add_log) -> None:
         popup_selectors = (

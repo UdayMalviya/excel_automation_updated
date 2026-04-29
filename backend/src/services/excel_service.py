@@ -15,6 +15,7 @@ from src.schemas.task import StartTaskRequest
 class ExcelTaskMapper:
     _COLUMN_ALIASES: dict[str, tuple[str, ...]] = {
         "sr": ("sr",),
+        "add_farmer": ("add farmer", "add_farmer", "add kisan", "add_kisan"),
         "farmer_name": ("कृषक का नाम", "farmer name"),
         "guardian_name": ("पिता/पति का नाम", "father/husband name"),
         "gender": ("महिला/पुरुष", "gender"),
@@ -118,10 +119,14 @@ class ExcelTaskMapper:
         return base_payload.model_copy(
             update={
                 "sr": row_data.get("sr") or base_payload.sr,
+                "add_farmer": self.to_optional_bool(row_data.get("add_farmer"))
+                if row_data.get("add_farmer") is not None
+                else base_payload.add_farmer,
                 "farmer_name": row_data.get("farmer_name") or base_payload.farmer_name,
                 "guardian_name": row_data.get("guardian_name")
                 or base_payload.guardian_name,
-                "gender": row_data.get("gender") or base_payload.gender,
+                "gender": self.normalize_title_value(row_data.get("gender"))
+                or self.normalize_title_value(base_payload.gender),
                 "tehsil_name": row_data.get("tehsil_name") or base_payload.tehsil_name,
                 "village_name": row_data.get("village_name") or base_payload.village_name,
                 "farmer_type": row_data.get("farmer_type") or base_payload.farmer_type,
@@ -323,6 +328,13 @@ class ExcelTaskMapper:
         return normalized or None
 
     @staticmethod
+    def normalize_title_value(value: str | None) -> str | None:
+        if value is None:
+            return None
+        normalized = value.strip()
+        return normalized.capitalize() if normalized else None
+
+    @staticmethod
     def to_optional_index(value: object) -> int | None:
         if value is None:
             return None
@@ -352,6 +364,29 @@ class ExcelTaskMapper:
             return mapped_value
 
         raise ValueError(f"Expected a numeric option index but received '{cleaned}'.")
+
+    @staticmethod
+    def to_optional_bool(value: object) -> bool | None:
+        if value is None:
+            return None
+        if isinstance(value, bool):
+            return value
+        if isinstance(value, int):
+            return value == 1
+        if isinstance(value, float):
+            return int(value) == 1
+
+        cleaned = str(value).strip().lower()
+        if not cleaned:
+            return None
+        if cleaned in {"1", "true", "yes", "y", "add", "add_farmer"}:
+            return True
+        if cleaned in {"0", "false", "no", "n", "skip"}:
+            return False
+
+        raise ValueError(
+            f"Expected add_farmer to be 1/0 or true/false but received '{value}'."
+        )
 
     @staticmethod
     def build_success_remark() -> str:
