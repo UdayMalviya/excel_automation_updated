@@ -598,6 +598,17 @@ class PlaywrightService:
             date=payload.date,
             amount=payload.amount,
         )
+        save_button = page.locator("#ContentPlaceHolder1_btndr")
+        await save_button.wait_for(state="attached", timeout=10000)
+        try:
+            await save_button.click(force=True, timeout=5000)
+        except Exception:
+            await save_button.evaluate("(element) => element.click()")
+        add_log(
+            "form",
+            "Vitran save button clicked",
+            selector="#ContentPlaceHolder1_btndr",
+        )
         await self._capture_page_state(page, "vitran_form", add_log)
         await page.wait_for_load_state("networkidle")
 
@@ -631,6 +642,17 @@ class PlaywrightService:
             season=season,
             date=payload.date,
             amount=payload.amount,
+        )
+        save_button = page.locator("#ContentPlaceHolder1_Btncr")
+        await save_button.wait_for(state="attached", timeout=10000)
+        try:
+            await save_button.click(force=True, timeout=5000)
+        except Exception:
+            await save_button.evaluate("(element) => element.click()")
+        add_log(
+            "form",
+            "Vasuli save button clicked",
+            selector="#ContentPlaceHolder1_Btncr",
         )
         await self._capture_page_state(page, "vasuli_form", add_log)
         await page.wait_for_load_state("networkidle")
