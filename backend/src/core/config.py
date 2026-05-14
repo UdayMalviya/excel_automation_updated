@@ -20,6 +20,7 @@ class Settings(BaseSettings):
     playwright_headless: bool = Field(default=False, alias="PLAYWRIGHT_HEADLESS")
     playwright_timeout_ms: int = Field(default=30000, alias="PLAYWRIGHT_TIMEOUT_MS")
     playwright_keep_open_ms: int = Field(default=10000, alias="PLAYWRIGHT_KEEP_OPEN_MS")
+    automation_log_dir: str | None = Field(default=None, alias="AUTOMATION_LOG_DIR")
     cors_origins_raw: str = Field(default="http://localhost:5173", alias="CORS_ORIGINS")
     public_novnc_url: str = Field(
         default="http://localhost:6080/vnc.html?autoconnect=true&resize=remote",

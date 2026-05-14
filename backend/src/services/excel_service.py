@@ -52,6 +52,7 @@ class ExcelTaskMapper:
 
     _TEXT_FIELDS = {
         "sr",
+        "add_farmer",
         "farmer_name",
         "guardian_name",
         "gender",
@@ -73,6 +74,13 @@ class ExcelTaskMapper:
         "farmer_added_remark": "Farmer Added Remark",
         "transaction_remark": "Trasection Remark",
     }
+
+    _INDEX_FIELDS = {"loan_type", "loan_mode", "season"}
+    _TITLE_FIELDS = {"gender"}
+    _DATE_FIELDS = {"date"}
+    _TRANSACTION_FIELDS = {"transaction_type"}
+    _BOOL_FIELDS = {"add_farmer"}
+    _SOURCE_FIELDS = {"source_file_name", "source_file_path", "source_row_number"}
 
     async def prepare_request_from_excel(
         self,
@@ -116,55 +124,76 @@ class ExcelTaskMapper:
         workbook_path: str,
     ) -> StartTaskRequest:
         row_data = self.extract_row(normalized_columns, row)
-        return base_payload.model_copy(
-            update={
-                "sr": row_data.get("sr") or base_payload.sr,
-                "add_farmer": self.to_optional_bool(row_data.get("add_farmer"))
-                if row_data.get("add_farmer") is not None
-                else base_payload.add_farmer,
-                "farmer_name": row_data.get("farmer_name") or base_payload.farmer_name,
-                "guardian_name": row_data.get("guardian_name")
-                or base_payload.guardian_name,
-                "gender": self.normalize_title_value(row_data.get("gender"))
-                or self.normalize_title_value(base_payload.gender),
-                "tehsil_name": row_data.get("tehsil_name") or base_payload.tehsil_name,
-                "village_name": row_data.get("village_name") or base_payload.village_name,
-                "farmer_type": row_data.get("farmer_type") or base_payload.farmer_type,
-                "category": row_data.get("category") or base_payload.category,
-                "savings_account_number": row_data.get("savings_account_number")
-                or base_payload.savings_account_number,
-                "mobile_number": row_data.get("mobile_number")
-                or base_payload.mobile_number,
-                "aadhaar_number": row_data.get("aadhaar_number")
-                or base_payload.aadhaar_number,
-                "erp_admission_number": row_data.get("erp_admission_number")
-                or base_payload.erp_admission_number,
-                "transaction_type": self.normalize_transaction_type(
-                    row_data.get("transaction_type")
-                )
-                or base_payload.transaction_type,
-                "loan_type": self.to_optional_index(row_data.get("loan_type"))
-                if row_data.get("loan_type") is not None
-                else base_payload.loan_type,
-                "loan_mode": self.to_optional_index(row_data.get("loan_mode"))
-                if row_data.get("loan_mode") is not None
-                else base_payload.loan_mode,
-                "season": self.to_optional_index(row_data.get("season"))
-                if row_data.get("season") is not None
-                else base_payload.season,
-                "amount": self.to_optional_string(row_data.get("amount"))
-                or base_payload.amount,
-                "date": self.to_excel_date_string(row_data.get("date"))
-                or base_payload.date,
-                "farmer_added_remark": row_data.get("farmer_added_remark")
-                or base_payload.farmer_added_remark,
-                "transaction_remark": row_data.get("transaction_remark")
-                or base_payload.transaction_remark,
-                "source_file_name": filename,
-                "source_file_path": workbook_path,
-                "source_row_number": row_index + 2,
-            }
-        )
+        updates: dict[str, object] = {
+            "source_file_name": filename,
+            "source_file_path": workbook_path,
+            "source_row_number": row_index + 2,
+        }
+        normalized_base_gender = self.normalize_title_value(base_payload.gender)
+        if normalized_base_gender is not None:
+            updates["gender"] = normalized_base_gender
+
+        for field_name in self._COLUMN_ALIASES:
+            if field_name not in StartTaskRequest.model_fields:
+                continue
+            if field_name not in row_data:
+                continue
+
+            value = self.coerce_row_value(field_name, row_data[field_name])
+            if value is not None:
+                updates[field_name] = value
+
+        return base_payload.model_copy(update=updates)
+
+    def coerce_request_values(self, values: dict[str, object]) -> dict[str, object]:
+        coerced: dict[str, object] = {}
+        for field_name, value in values.items():
+            if field_name not in StartTaskRequest.model_fields:
+                continue
+            if field_name in self._SOURCE_FIELDS:
+                continue
+            if value is None or value == "":
+                continue
+
+            if field_name in self._COLUMN_ALIASES:
+                normalized_value = self.coerce_row_value(field_name, value)
+            else:
+                normalized_value = value
+
+            if normalized_value is not None:
+                coerced[field_name] = normalized_value
+        return coerced
+
+    def coerce_row_value(self, field_name: str, value: object) -> object | None:
+        if field_name in self._BOOL_FIELDS:
+            return self.to_optional_bool(value)
+        if field_name in self._INDEX_FIELDS:
+            return self.to_optional_index(value)
+        if field_name in self._TITLE_FIELDS:
+            return self.normalize_title_value(self.to_optional_string(value))
+        if field_name in self._DATE_FIELDS:
+            return self.to_excel_date_string(value)
+        if field_name in self._TRANSACTION_FIELDS:
+            return self.normalize_transaction_type(self.to_optional_string(value))
+        return self.to_optional_string(value)
+
+    @classmethod
+    def field_label(cls, field_name: str) -> str:
+        aliases = cls._COLUMN_ALIASES.get(field_name)
+        if not aliases:
+            return field_name
+        for alias in aliases:
+            repaired = cls.repair_mojibake(alias)
+            if repaired.isascii():
+                return repaired
+        return cls.repair_mojibake(aliases[0])
+
+    @classmethod
+    def field_labels(cls, field_names: list[str]) -> list[str]:
+        return [
+            f"{field_name} ({cls.field_label(field_name)})"
+            for field_name in field_names
+        ]
 
     def ensure_status_columns(
         self,
@@ -383,6 +412,10 @@ class ExcelTaskMapper:
             return True
         if cleaned in {"0", "false", "no", "n", "skip"}:
             return False
+        try:
+            return int(float(cleaned)) == 1
+        except ValueError:
+            pass
 
         raise ValueError(
             f"Expected add_farmer to be 1/0 or true/false but received '{value}'."

@@ -1,7 +1,7 @@
 import { useState } from "react";
 import ControlPanel from "../components/ControlPanel";
 import VNCViewer from "../components/VNCViewer";
-import LogsPanel from "../components/LogsPanel";
+// import LogsPanel from "../components/LogsPanel";
 import { getDownloadUrl, startTask, submitCaptcha } from "../services/api";
 
 const initialLogs = [
@@ -150,12 +150,16 @@ function Dashboard() {
   };
 
   return (
-    <main className="dashboard-shell">
-      <section className="hero-card">
+    <main className="mx-auto min-h-screen w-[calc(100%_-_32px)] max-w-[1400px] py-6 pb-8 max-sm:w-[calc(100%_-_20px)] max-sm:pt-4">
+      <section className="mb-5 grid grid-cols-[1.3fr_0.9fr] items-start gap-5 rounded-3xl border border-slate-200/15 bg-slate-950/80 p-7 shadow-2xl shadow-slate-950/30 backdrop-blur-xl max-[1080px]:grid-cols-1 max-sm:rounded-2xl max-sm:p-4">
         <div>
-          <p className="eyebrow">Visible Browser Automation</p>
-          <h1>Run Playwright and watch it live.</h1>
-          <p className="hero-copy">
+          <p className="mb-2 text-xs font-medium uppercase tracking-[0.18em] text-emerald-200">
+            Visible Browser Automation
+          </p>
+          <h1 className="mb-3.5 text-[clamp(2rem,3vw,3.5rem)] font-bold leading-[1.05]">
+            Run Playwright and watch it live.
+          </h1>
+          <p className="text-slate-200/70">
             This dashboard triggers FastAPI automation jobs, streams the
             browser through noVNC, and surfaces structured execution output in
             one place.
@@ -179,6 +183,7 @@ function Dashboard() {
               ? {
                   ...result,
                   download_url: getDownloadUrl(result.download_path),
+                  log_download_url: getDownloadUrl(result.log_download_path),
                 }
               : null
           }
@@ -187,9 +192,10 @@ function Dashboard() {
         />
       </section>
 
-      <section className="content-grid">
+      {/* <section className="grid grid-cols-[1.35fr_0.85fr] gap-5 max-[1080px]:grid-cols-1 w-full"> */}
+      <section className="w-full">
         <VNCViewer />
-        <LogsPanel logs={logs} result={result} />
+        {/* <LogsPanel logs={logs} result={result} /> */}
       </section>
     </main>
   );

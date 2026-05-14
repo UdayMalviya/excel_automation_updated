@@ -4,7 +4,7 @@ const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || "http://localhost:8000";
 
 const api = axios.create({
   baseURL: apiBaseUrl,
-  timeout: 60000,
+  timeout: 0,
 });
 
 export async function startTask(payload) {

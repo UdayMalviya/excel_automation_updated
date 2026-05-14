@@ -50,6 +50,9 @@ class TaskResponse(BaseModel):
     result_file_name: str | None = None
     download_id: str | None = None
     download_path: str | None = None
+    log_download_id: str | None = None
+    log_download_path: str | None = None
+    log_file_name: str | None = None
     processed_rows: int | None = None
     successful_rows: int | None = None
     failed_rows: int | None = None

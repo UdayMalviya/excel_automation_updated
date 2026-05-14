@@ -74,32 +74,37 @@ async def start_task(
         "add_farmer",
         "add_farmer_only",
     }
+    task_values = excel_mapper.coerce_request_values(
+        {
+            "action": action,
+            "sr": sr,
+            "add_farmer": should_add_farmer,
+            "farmer_name": farmer_name,
+            "guardian_name": guardian_name,
+            "gender": gender,
+            "tehsil_name": tehsil_name,
+            "village_name": village_name,
+            "farmer_type": farmer_type,
+            "category": category,
+            "savings_account_number": savings_account_number,
+            "mobile_number": mobile_number,
+            "aadhaar_number": aadhaar_number,
+            "erp_admission_number": erp_admission_number,
+            "transaction_type": transaction_type,
+            "loan_type": loan_type,
+            "loan_mode": loan_mode,
+            "season": season,
+            "date": date,
+            "amount": amount,
+            "farmer_added_remark": farmer_added_remark,
+            "transaction_remark": transaction_remark,
+        }
+    )
     payload = StartTaskRequest(
         url=url,
         username=username,
         password=password,
-        action=action,
-        sr=sr,
-        add_farmer=should_add_farmer,
-        farmer_name=farmer_name,
-        guardian_name=guardian_name,
-        gender=gender,
-        tehsil_name=tehsil_name,
-        village_name=village_name,
-        farmer_type=farmer_type,
-        category=category,
-        savings_account_number=savings_account_number,
-        mobile_number=mobile_number,
-        aadhaar_number=aadhaar_number,
-        erp_admission_number=erp_admission_number,
-        transaction_type=transaction_type,
-        loan_type=loan_type,
-        loan_mode=loan_mode,
-        season=season,
-        date=date,
-        amount=amount,
-        farmer_added_remark=farmer_added_remark,
-        transaction_remark=transaction_remark,
+        **task_values,
     )
 
     if excel_file is not None:
@@ -136,6 +141,21 @@ async def download_result(
         path=artifact["path"],
         filename=artifact["filename"],
         media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    )
+
+
+@api_router.get("/download-log/{log_id}")
+async def download_log(
+    log_id: str,
+    service: PlaywrightService = Depends(get_playwright_service),
+) -> FileResponse:
+    artifact = service.get_log_artifact(log_id)
+    if artifact is None:
+        raise HTTPException(status_code=404, detail="Automation log file not found.")
+    return FileResponse(
+        path=artifact["path"],
+        filename=artifact["filename"],
+        media_type="application/x-ndjson",
     )
 
 
