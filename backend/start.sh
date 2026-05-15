@@ -3,10 +3,16 @@ set -euo pipefail
 
 DISPLAY_NUMBER="${DISPLAY:-:99}"
 DISPLAY_ID="${DISPLAY_NUMBER#:}"
+
 APP_HOST="${APP_HOST:-0.0.0.0}"
 APP_PORT="${APP_PORT:-8000}"
+
 VNC_PORT="${VNC_PORT:-5900}"
 NOVNC_PORT="${NOVNC_PORT:-6080}"
+
+WEB_CONCURRENCY="${WEB_CONCURRENCY:-4}"
+TIMEOUT="${TIMEOUT:-120}"
+
 
 cleanup() {
   echo "Shutting down background services..."
@@ -65,4 +71,12 @@ websockify \
   > /tmp/novnc.log 2>&1 &
 
 echo "Starting FastAPI with reload..."
-exec uvicorn src.api.main:app --host "${APP_HOST}" --port "${APP_PORT}" --reload
+# exec uvicorn src.api.main:app --host "${APP_HOST}" --port "${APP_PORT}" --reload
+
+exec gunicorn src.api.main:app \
+  -k uvicorn.workers.UvicornWorker \
+  --bind "${APP_HOST}:${APP_PORT}" \
+  --workers "${WEB_CONCURRENCY}" \
+  --timeout "${TIMEOUT}" \
+  --access-logfile - \
+  --error-logfile -
